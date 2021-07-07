@@ -1,83 +1,103 @@
-import React, {useState, useEffect} from 'react'
-import Filter from './components/Filter'
-import PersonForm from './components/PersonForm'
-import Persons from './components/Persons'
-import axios from 'axios'
+import React, { useState, useEffect } from 'react'
+import DisplayNames from './components/DisplayNames'
+import SaveBtn from './components/SaveBtn'
+import personService from './services/persons'
+import Notification from './components/Notification'
 
 const App = () => {
+  const [ persons, setPersons] = useState([]) 
+  const [ newName, setNewName ] = useState('')
+  const [ newNumber, setNewNumber ] = useState('')
+  const [ errorMessage, setErrorMessage ] = useState(null)
 
-    const [ persons, setPersons ] = useState([
-    { name: 'Arto Hellas', number: '040-123456' },
-    { name: 'Ada Lovelace', number: '39-44-5323523' },
-    { name: 'Dan Abramov', number: '12-43-234345' },
-    { name: 'Mary Poppendieck', number: '39-23-6423122' }
-  ])
+  useEffect(() => {
+    personService
+      .getAll()
+      .then(initialPersons => {
+        setPersons(initialPersons)
+      })
+  }, [])
 
-    const [ newName, setNewName ] = useState('')
-
-    const [ newNumber, setNewNumber ] = useState('')
-
-    const [filterNames, setFilterNames] = useState(persons);
-
-    useEffect(() => {
-      axios
-        .get('http://localhost:3001/persons')
-        .then(response => {
-          setPersons(response.data)
-        })
-    }, [])
-
-const addName = (event) => {
-      event.preventDefault()
-
-      if (persons.find((p) => p.name === newName)) {
-      alert(`${newName} is already added to phonebook`);
-      return false;
-    }
-    
-      const nameObject = {
-          name: newName,
-          number: newNumber,
-      }
-
-      axios
-      .post('http://localhost:3001/persons', nameObject)
-      .then(response => {
-      setPersons([...persons,response.data])
-      setNewName('')
-      setNewNumber('')
-    })
-
-}
-
-const handleNameChange = (event) => {
+  const handleName = (event) => {
     setNewName(event.target.value)
-}
+  }
 
-const handleNumberChange = (event) => {
+  const handleNumber = (event) => {
     setNewNumber(event.target.value)
+  }
+
+  const addPerson = (event) => {
+    event.preventDefault()
+    const names = Object.values(persons).map(x => x.name)
+    if (names.includes(newName)) {
+      return window.alert(newName + ' is already added to phonebook!')
+    }
+    else {
+    const newPerson = {
+      name: newName,
+      number: newNumber
+    }
+    personService
+      .create(newPerson)
+      .then(person => {
+        setPersons(persons.concat(person))
+        setErrorMessage(
+          `Added ${person.name}`
+        )
+        setTimeout(() => {
+          setErrorMessage(null)
+        }, 5000)
+        setNewName('')
+        setNewNumber('')
+      })
+  }
 }
 
-const filterName = (e) => {
-    setFilterNames(persons.filter(person => 
-    person.name.toLowerCase().indexOf(e.target.value.toLowerCase()) !== -1))
-}
+  const removePerson = (name) => {
+    const findPers = persons.find(person => person.name === name)
+    if(window.confirm("Are you sure you want to delete ", name)) {
+      personService
+        .remove(findPers)
+        .then(() => personService.getAll().then(x => {
+          console.log("x is: ", x)
+          setPersons(x)
+          setErrorMessage(
+            `Deleted ${name}`
+          )
+          setTimeout(() => {
+            setErrorMessage(null)
+          }, 5000)
+        }))
+      }
+  }
+
 
   return (
     <div>
       <h2>Phonebook</h2>
-      <Filter filterName={filterName} />
-      <h3>Add new user</h3>
-      <PersonForm
-        addName={addName}
-        newName={newName}
-        handleNameChange={handleNameChange}
-        newNumber={newNumber}
-        handleNumberChange={handleNumberChange}
-      />  
+
+      <Notification message={errorMessage} />
+
+      <form onSubmit={addPerson}>
+        <div>
+          name: <input 
+            value={newName}
+            onChange={handleName}
+          />
+        </div>
+        <div>
+          number: <input
+            value={newNumber}
+            onChange={handleNumber}
+          />
+        </div>
+        <div>
+          <SaveBtn />
+        </div>
+      </form>
       <h2>Numbers</h2>
       <ul>
-      <Persons filterNames={filterNames} />
+        <DisplayNames persons={persons} onRemove={removePerson}/>
       </ul>
     </div>
   )
