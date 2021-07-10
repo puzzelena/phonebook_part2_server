@@ -1,14 +1,13 @@
+import React from "react";
 
-import React from 'react'
-import DeleteBtn from './DeleteBtn'
+import Person from "./Person";
 
-const Persons = (props) => {
-    return(
-      <div id="parent">
-        <li> {props.persons.name} {props.persons.number} </li>
-        <DeleteBtn persons={props.persons.name} onRemove={props.onRemove}/>
-      </div>
-    )
-  }
+const Persons = ({ persons, handleDelete }) => (
+  <div>
+    {persons.map((person) => (
+      <Person key={person.id} person={person} handleDelete={handleDelete} />
+    ))}
+  </div>
+);
 
-  export default Persons
+export default Persons;
